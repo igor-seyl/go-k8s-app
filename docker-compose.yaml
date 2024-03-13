@@ -8,7 +8,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./postgres/db-data:/var/lib/postgres/data
+      - ./postgres/db-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=k8sdb
       - POSTGRES_USER=k8s_user
