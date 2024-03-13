@@ -1,18 +1,33 @@
 version: '3'
 
 services:
+  web:
+    container_name: go-k8s-vuejs
+    build:
+      context: ./vuejs
+    ports:
+      - "${WEB_PORT}:8080"
+    volumes:
+      - ./vuejs:/project
+      - /project/node_modules
+
   postgres:
     container_name: go-k8s-postgres
-    restart: always
     image: postgres:14.3-alpine
+    restart: always
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - ./postgres/db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'" ]
+      interval: 3s
+      timeout: 3s
+      retries: 3
     environment:
-      - POSTGRES_DB=k8sdb
-      - POSTGRES_USER=k8s_user
-      - POSTGRES_PASSWORD=k8s_user
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PW}
     networks:
       - postgres-network
 
@@ -23,14 +38,15 @@ services:
       - ./postgres/changelog/:/usr/share/liquibase/model
     environment:
       - LIQUIBASE_HOST=postgres
-      - LIQUIBASE_PORT=5432
-      - LIQUIBASE_DATABASE=k8sdb
-      - LIQUIBASE_USERNAME=k8s_user
-      - LIQUIBASE_PASSWORD=k8s_user
+      - LIQUIBASE_PORT=${POSTGRES_PORT}
+      - LIQUIBASE_DATABASE=${POSTGRES_DB}
+      - LIQUIBASE_USERNAME=${POSTGRES_USER}
+      - LIQUIBASE_PASSWORD=${POSTGRES_PW}
     command:
       - update
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     links:
       - postgres
     networks:
