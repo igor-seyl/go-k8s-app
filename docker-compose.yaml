@@ -1,0 +1,41 @@
+version: '3'
+
+services:
+  postgres:
+    container_name: go-k8s-postgres
+    restart: always
+    image: postgres:14.3-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/db-data:/var/lib/postgres/data
+    environment:
+      - POSTGRES_DB=k8sdb
+      - POSTGRES_USER=k8s_user
+      - POSTGRES_PASSWORD=k8s_user
+    networks:
+      - postgres-network
+
+  liquibase:
+    container_name: go-k8s-liquibase
+    image: jpaoletti/liquibase-postgres:3.6.2
+    volumes:
+      - ./postgres/changelog/:/usr/share/liquibase/model
+    environment:
+      - LIQUIBASE_HOST=postgres
+      - LIQUIBASE_PORT=5432
+      - LIQUIBASE_DATABASE=k8sdb
+      - LIQUIBASE_USERNAME=k8s_user
+      - LIQUIBASE_PASSWORD=k8s_user
+    command:
+      - update
+    depends_on:
+      - postgres
+    links:
+      - postgres
+    networks:
+      - postgres-network
+
+networks:
+  postgres-network:
+    driver: bridge
